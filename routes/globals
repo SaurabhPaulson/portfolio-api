@@ -1,0 +1,55 @@
+var nodemailer = require('nodemailer');
+require('dotenv').config();
+
+function sendMail(params) {
+  let { fromEmail, fromName, message, html, attachment } = params;
+
+  let transporter = nodemailer.createTransport({
+    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true, // true for 465, false for other ports
+    auth: {
+      user: process.env.EMAIL_USER, // Your Gmail account
+      pass: process.env.EMAIL_PASS, // Your Gmail password (or App password)
+    },
+  });
+
+  // Validate required fields
+  if (!fromEmail || !fromName || !message) {
+    console.error("Error: Missing required fields (fromEmail, fromName, or message)");
+    return Promise.reject(new Error("Missing required fields"));
+  }
+
+  let mailOptions = {
+    from: `${fromName} <${fromEmail}>`, 
+    to: process.env.EMAIL_USER,          
+    subject: `New message from '${fromName}'`,
+    text: message,
+    html: html || `<p>${message}</p>`,
+    replyTo: fromEmail, 
+  };
+
+  // Handle attachments if provided
+  if (attachment) {
+    // Validate attachment
+    if (!attachment.filename || !attachment.content) {
+      console.error("Error: Invalid attachment details.");
+      return Promise.reject(new Error("Invalid attachment"));
+    }
+    mailOptions.attachments = [attachment];
+  }
+
+  // Send email
+  return transporter.sendMail(mailOptions)
+    .then(info => {
+      console.log("Email sent successfully:", info.response);
+      return info;
+    })
+    .catch(error => {
+      console.error("Error in sendMail:", error);
+      throw error;
+    });
+}
+
+module.exports = { sendMail };
